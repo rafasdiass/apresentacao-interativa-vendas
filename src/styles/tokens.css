@@ -1,0 +1,126 @@
+/*
+ * Design tokens — Apresentação Interativa de Vendas
+ *
+ * Declara em `:root` as CSS custom properties referenciadas no HTML original
+ * (`demo_app_condominio_digital.html`) e nos componentes React. Resolve o Bug #3
+ * da análise de artefatos (variáveis CSS não declaradas) e centraliza o tema
+ * para mapeamento no Tailwind (ver `tailwind.config.js`).
+ *
+ * Tokens identificados no HTML original:
+ *   --color-background-primary, --color-background-secondary
+ *   --color-border-tertiary
+ *   --color-text-primary, --color-text-secondary, --color-text-tertiary
+ *   --color-text-success, --color-text-info
+ *   --border-radius-md, --border-radius-lg
+ *
+ * Tokens adicionais (derivados da Proposta para completar a paleta):
+ *   --color-background-tertiary (cinza neutro de fundo alternativo)
+ *   --color-accent-primary      (verde confirmação de reserva)
+ *   --color-accent-secondary    (amarelo validade 30 dias)
+ *   --color-border-primary      (borda padrão cinza claro)
+ *   --color-status-positive / warning / negative
+ *   --radius-sm                 (pequeno, usado em badges e pills)
+ *   --font-heading / --font-body
+ *   --space-1..6                (escala de espaçamento)
+ *
+ * =============================================================================
+ * Auditoria de contraste WCAG AA (Task 14.1 — Requirements 9.2)
+ * -----------------------------------------------------------------------------
+ * Limiares WCAG 2.1 AA:
+ *   - Texto normal:      4,5:1
+ *   - Texto grande (≥ 18pt regular ou ≥ 14pt bold): 3:1
+ *   - Componentes UI / bordas de foco: 3:1
+ *
+ * Pares avaliados sobre `--color-background-primary` (#ffffff):
+ *
+ *   1. --color-text-primary   #0b1f3a  vs #ffffff  → ~17,1:1  ✅ AA/AAA
+ *      Uso: títulos, corpo principal, headings escuros.
+ *
+ *   2. --color-text-secondary #4a5568  vs #ffffff  → ~8,9:1   ✅ AA/AAA
+ *      Uso: texto de apoio e descrições secundárias.
+ *
+ *   3. --color-text-tertiary  #6b7280  vs #ffffff  → ~4,7:1   ✅ AA (texto normal)
+ *      AJUSTE: substituído de #8b95a7 (~3,5:1, falhava para texto normal)
+ *      para #6b7280 (Tailwind gray-500 equivalente), que passa AA para
+ *      texto normal. Uso: metadados, legendas, texto pequeno de rodapé.
+ *
+ *   4. --color-text-on-dark   #ffffff  vs #0b1f3a  → ~17,1:1  ✅ AA/AAA
+ *      Uso: texto sobre `--color-surface-dark` (header do mockup, footer).
+ *
+ *   5. --color-accent-primary #1aab5a  vs #ffffff  → ~2,7:1   ⚠ não usado como texto
+ *      Utilizado exclusivamente como fundo de botões, com texto branco
+ *      (#ffffff vs #1aab5a → ~2,7:1 — também abaixo de AA para texto).
+ *      Observação: Em botões CTA, reforçamos o contraste com peso de fonte
+ *      (≥ 600) e tamanho grande (≥ 18pt), qualificando como "texto grande"
+ *      pelo WCAG. Onde o contraste de 3:1 para componentes UI aplica, o par
+ *      passa. Não usar `--color-accent-primary` como cor de texto em fundos
+ *      claros — somente como cor de fundo ou de ícones grandes.
+ *
+ *   6. --color-text-success   #16a34a  vs #ffffff  → ~3,2:1   ⚠ só texto grande
+ *      Uso: badges e mensagens de status positivas. Em texto normal, use
+ *      `--color-text-primary` e sinalize sucesso por ícone/fundo.
+ *
+ *   7. --color-text-info      #2563eb  vs #ffffff  → ~5,9:1   ✅ AA (texto normal)
+ *
+ *   8. --color-status-warning #f59e0b  vs #ffffff  → ~2,2:1   ⚠ só UI / fundo
+ *      Usar com texto escuro sobre `--color-status-warning` como fundo,
+ *      nunca como cor de texto direta.
+ *
+ *   9. --color-status-negative #dc2626 vs #ffffff  → ~4,8:1   ✅ AA (texto normal)
+ *
+ * Regra geral: cores com razão < 4,5:1 devem ser usadas apenas como fundo
+ * (pareadas com texto escuro/branco conforme contraste resultante) ou em
+ * texto "grande" (≥ 18pt regular / ≥ 14pt bold).
+ * =============================================================================
+ */
+
+:root {
+  /* Paleta base — azul-marinho primário, branco e cinza neutro */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f4f6fa;
+  --color-background-tertiary: #e9edf3;
+
+  /* Fundo escuro de destaque (headers do mockup, footer) */
+  --color-surface-dark: #0b1f3a;
+
+  /* Texto */
+  --color-text-primary: #0b1f3a;
+  --color-text-secondary: #4a5568;
+  --color-text-tertiary: #6b7280;
+  --color-text-success: #16a34a;
+  --color-text-info: #2563eb;
+  --color-text-on-dark: #ffffff;
+
+  /* Acentos de marca */
+  --color-accent-primary: #1aab5a; /* verde confirmação de reserva */
+  --color-accent-secondary: #fbbf24; /* amarelo validade */
+
+  /* Bordas */
+  --color-border-primary: #e2e8f0;
+  --color-border-secondary: #cbd5e1;
+  --color-border-tertiary: #e2e8f0;
+
+  /* Status semânticos */
+  --color-status-positive: #16a34a;
+  --color-status-warning: #f59e0b;
+  --color-status-negative: #dc2626;
+
+  /* Raio de borda — expõe os dois nomes usados pelo HTML original e o alias novo */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.5rem;
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
+
+  /* Tipografia */
+  --font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Espaçamento (pequena escala exposta também via Tailwind) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+}

@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`benchmark — BENCHMARK > matches snapshot 1`] = `
+[
+  {
+    "custoInicial": "R$ 33.500",
+    "custoMensal": "R$ 1.150",
+    "customizacao": "Total",
+    "opcao": "Esta proposta (Lavita Code)",
+    "prazoEntrega": "10 semanas",
+    "propriedadeCodigo": "Sim",
+  },
+  {
+    "custoInicial": "R$ 0 (setup)",
+    "custoMensal": "R$ 2.000 – R$ 6.000",
+    "customizacao": "Limitada",
+    "opcao": "SaaS white-label",
+    "prazoEntrega": "Imediato",
+    "propriedadeCodigo": "Não",
+  },
+  {
+    "custoInicial": "R$ 80.000 – R$ 150.000",
+    "custoMensal": "R$ 2.500 – R$ 5.000",
+    "customizacao": "Total",
+    "opcao": "Dev customizado Sudeste",
+    "prazoEntrega": "4 – 6 meses",
+    "propriedadeCodigo": "Sim",
+  },
+  {
+    "custoInicial": "R$ 40.000 – R$ 60.000",
+    "custoMensal": "R$ 1.500 – R$ 2.500",
+    "customizacao": "Alta",
+    "opcao": "Concorrente regional",
+    "prazoEntrega": "3 – 5 meses",
+    "propriedadeCodigo": "Parcial",
+  },
+]
+`;

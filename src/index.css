@@ -1,0 +1,54 @@
+@import './styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Respeita prefers-reduced-motion desativando rolagem suave e transições/animações. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  body {
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /*
+   * Anel de foco visível global — Task 14.2 / Requirements 9.5
+   *
+   * Garante um foco consistente em todos os elementos interativos
+   * sem precisar replicar a classe em cada componente. Componentes
+   * podem sobrescrever com utilitários mais específicos (por ex.
+   * um anel de cor diferente) quando necessário.
+   */
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  [role='button'],
+  [role='tab'],
+  [role='radio'] {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2;
+  }
+}

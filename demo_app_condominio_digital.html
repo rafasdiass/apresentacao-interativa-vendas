@@ -1,0 +1,420 @@
+<h2 class="sr-only">Demonstração interativa do App Condomínio Digital com vista de morador (mobile) e painel administrativo do síndico</h2>
+
+<div style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1rem 0;">
+
+  <!-- HEADER do produto -->
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary);">
+    <div>
+      <div style="font-size: 11px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.08em; margin-bottom: 4px;">DEMONSTRAÇÃO INTERATIVA</div>
+      <div style="font-size: 22px; font-weight: 500; color: var(--color-text-primary);">App Condomínio Digital</div>
+      <div style="font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;">520 unidades · Ionic + NestJS · iOS &amp; Android</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span id="liveDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-success); display: inline-block;"></span>
+      <span style="font-size: 12px; color: var(--color-text-success); font-weight: 500;">DEMO AO VIVO</span>
+    </div>
+  </div>
+
+  <!-- TABS de visão -->
+  <div style="display: flex; gap: 8px; padding: 4px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); width: fit-content;">
+    <button id="tabMorador" onclick="switchView('morador')" style="border: none; background: var(--color-background-primary); color: var(--color-text-primary); font-weight: 500; font-size: 13px; padding: 8px 16px; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Visão do Morador</button>
+    <button id="tabSindico" onclick="switchView('sindico')" style="border: none; background: transparent; color: var(--color-text-secondary); font-weight: 500; font-size: 13px; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Painel do Síndico</button>
+  </div>
+
+  <!-- ============== VISÃO MORADOR ============== -->
+  <div id="viewMorador" style="display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1.25rem; align-items: start;">
+
+    <!-- MOBILE MOCKUP -->
+    <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 20px; display: flex; justify-content: center;">
+      <div style="width: 280px; background: #1E3A5F; border-radius: 28px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);">
+        <div style="background: #FFFFFF; border-radius: 22px; overflow: hidden; min-height: 540px;">
+
+          <!-- status bar -->
+          <div style="background: #1E3A5F; color: white; padding: 10px 16px 8px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 500;">
+            <span>9:41</span>
+            <span>● ● ●</span>
+          </div>
+
+          <!-- app header -->
+          <div style="background: #1E3A5F; color: white; padding: 8px 16px 18px;">
+            <div style="font-size: 11px; opacity: 0.7; letter-spacing: 0.08em;">CASA 247 · BLOCO B</div>
+            <div style="font-size: 18px; font-weight: 500; margin-top: 2px;">Olá, morador 👋</div>
+          </div>
+
+          <!-- content -->
+          <div style="padding: 16px;">
+            <div style="font-size: 13px; font-weight: 500; color: #2C3E50; margin-bottom: 10px;">Reservar agora</div>
+
+            <!-- area cards -->
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+              <div onclick="selectArea('quadra')" id="areaQuadra" style="cursor: pointer; padding: 12px; border: 1.5px solid #06A77D; border-radius: 10px; background: #ECFAF4; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13px; font-weight: 500; color: #06593F;">Quadra de Vôlei</div>
+                  <div style="font-size: 11px; color: #088561; margin-top: 2px;">Limite 2h · até 22h</div>
+                </div>
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: #06A77D;"></div>
+              </div>
+
+              <div onclick="selectArea('deck')" id="areaDeck" style="cursor: pointer; padding: 12px; border: 1px solid #D6DEE6; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13px; font-weight: 500; color: #2C3E50;">Deck e Salão</div>
+                  <div style="font-size: 11px; color: #6B7785; margin-top: 2px;">Reserva exclusiva</div>
+                </div>
+                <div style="font-size: 11px; color: #6B7785;">›</div>
+              </div>
+
+              <div style="padding: 12px; border: 1px solid #D6DEE6; border-radius: 10px; background: #FFF8E6; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 13px; font-weight: 500; color: #7A5601;">Piscina</div>
+                  <div style="font-size: 11px; color: #B07F09; margin-top: 2px;">Fechada às segundas</div>
+                </div>
+                <div style="font-size: 16px;">ℹ︎</div>
+              </div>
+            </div>
+
+            <!-- horarios -->
+            <div style="font-size: 13px; font-weight: 500; color: #2C3E50; margin-bottom: 8px;">Horários disponíveis</div>
+            <div style="font-size: 11px; color: #6B7785; margin-bottom: 8px;">Hoje · Quadra de Vôlei</div>
+
+            <div id="slotsContainer" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;"></div>
+
+            <button id="confirmBtn" onclick="confirmReserva()" disabled style="margin-top: 14px; width: 100%; padding: 12px; background: #D6DEE6; color: #6B7785; border: none; border-radius: 10px; font-weight: 500; font-size: 13px; cursor: not-allowed;">Selecione um horário</button>
+
+            <div id="confirmMsg" style="display: none; margin-top: 10px; padding: 10px; background: #ECFAF4; border-radius: 8px; font-size: 12px; color: #06593F; text-align: center;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LADO DIREITO: explicação + recursos -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+
+      <div>
+        <div style="font-size: 11px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.08em; margin-bottom: 6px;">EXPERIÊNCIA DO MORADOR</div>
+        <div style="font-size: 16px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px;">Reservar uma área leva 3 toques</div>
+        <div style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.6;">Toque na área desejada, escolha um horário disponível e confirme. O app já bloqueia horários ocupados e fora do expediente automaticamente — o morador nunca vê uma opção inválida.</div>
+      </div>
+
+      <!-- mini cards de features -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+          <div style="font-size: 22px; font-weight: 500; color: var(--color-text-primary);">2h</div>
+          <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">Limite por casa na quadra</div>
+        </div>
+        <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px;">
+          <div style="font-size: 22px; font-weight: 500; color: var(--color-text-primary);">24/7</div>
+          <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">Reserva sem precisar do síndico</div>
+        </div>
+      </div>
+
+      <!-- timeline simulada -->
+      <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px;">
+        <div style="font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 10px;">Suas próximas reservas</div>
+
+        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary);">
+          <div style="width: 4px; height: 32px; background: #06A77D; border-radius: 2px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 500; color: var(--color-text-primary);">Quadra de Vôlei</div>
+            <div style="font-size: 11px; color: var(--color-text-secondary);">Sábado · 16:00 – 18:00</div>
+          </div>
+          <div style="font-size: 11px; color: var(--color-text-success); font-weight: 500;">Confirmada</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+          <div style="width: 4px; height: 32px; background: #2E86AB; border-radius: 2px;"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 500; color: var(--color-text-primary);">Salão de Festas</div>
+            <div style="font-size: 11px; color: var(--color-text-secondary);">15/06 · Aniversário</div>
+          </div>
+          <div style="font-size: 11px; color: var(--color-text-info); font-weight: 500;">Agendada</div>
+        </div>
+      </div>
+
+      <button onclick="sendPrompt('Mostre-me as 5 telas mais importantes do app do morador, como ficaria o fluxo completo desde o login até a confirmação da reserva')" style="font-size: 12px;">Ver fluxo completo do morador ↗</button>
+    </div>
+  </div>
+
+  <!-- ============== VISÃO SÍNDICO ============== -->
+  <div id="viewSindico" style="display: none; flex-direction: column; gap: 1rem;">
+
+    <!-- KPIs -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px;">
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Reservas hoje</div>
+        <div style="font-size: 24px; font-weight: 500; color: var(--color-text-primary);">23</div>
+        <div style="font-size: 11px; color: var(--color-text-success); margin-top: 2px;">+18% vs. ontem</div>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px;">
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Ocupação atual</div>
+        <div style="font-size: 24px; font-weight: 500; color: var(--color-text-primary);">76%</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">3 áreas ocupadas</div>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px;">
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Casas ativas</div>
+        <div style="font-size: 24px; font-weight: 500; color: var(--color-text-primary);">487</div>
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">de 520 unidades</div>
+      </div>
+      <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px;">
+        <div style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px;">Conflitos resolvidos</div>
+        <div style="font-size: 24px; font-weight: 500; color: var(--color-text-primary);">100%</div>
+        <div style="font-size: 11px; color: var(--color-text-success); margin-top: 2px;">Automático</div>
+      </div>
+    </div>
+
+    <!-- Mapa de ocupação ao vivo -->
+    <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 500; color: var(--color-text-primary);">Ocupação em tempo real</div>
+          <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">Atualiza a cada 30 segundos</div>
+        </div>
+        <div style="font-size: 11px; color: var(--color-text-secondary);">Hoje · 14:30</div>
+      </div>
+
+      <!-- timeline de áreas -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-size: 12px; font-weight: 500; color: var(--color-text-primary);">Quadra de Vôlei</span>
+            <span style="font-size: 11px; color: var(--color-text-secondary);">3 reservas hoje · 6h ocupadas</span>
+          </div>
+          <div style="display: flex; height: 24px; gap: 1px; border-radius: 4px; overflow: hidden;">
+            <div style="flex: 2; background: #E6F1FB;" title="08-10 livre"></div>
+            <div style="flex: 2; background: #06A77D;" title="10-12 Casa 134"></div>
+            <div style="flex: 2; background: #E6F1FB;"></div>
+            <div style="flex: 2; background: #06A77D;" title="14-16 Casa 247"></div>
+            <div style="flex: 2; background: #06A77D;"></div>
+            <div style="flex: 2; background: #E6F1FB;"></div>
+            <div style="flex: 2; background: #2E86AB;" title="20-22 Casa 401"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+            <span style="font-size: 10px; color: var(--color-text-tertiary);">08h</span>
+            <span style="font-size: 10px; color: var(--color-text-tertiary);">14h</span>
+            <span style="font-size: 10px; color: var(--color-text-tertiary);">22h</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-size: 12px; font-weight: 500; color: var(--color-text-primary);">Deck e Salão</span>
+            <span style="font-size: 11px; color: var(--color-text-secondary);">2 reservas hoje</span>
+          </div>
+          <div style="display: flex; height: 24px; gap: 1px; border-radius: 4px; overflow: hidden;">
+            <div style="flex: 5; background: #E6F1FB;"></div>
+            <div style="flex: 4; background: #2E86AB;"></div>
+            <div style="flex: 5; background: #E6F1FB;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-size: 12px; font-weight: 500; color: var(--color-text-primary);">Piscina</span>
+            <span style="font-size: 11px; color: #BA7517;">Fechada hoje · Manutenção</span>
+          </div>
+          <div style="display: flex; height: 24px; gap: 1px; border-radius: 4px; overflow: hidden; opacity: 0.5;">
+            <div style="flex: 1; background: repeating-linear-gradient(45deg, #FAEEDA, #FAEEDA 4px, #FAC775 4px, #FAC775 8px);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- legenda -->
+      <div style="display: flex; gap: 14px; margin-top: 14px; padding-top: 12px; border-top: 0.5px solid var(--color-border-tertiary);">
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 10px; height: 10px; background: #E6F1FB; border-radius: 2px;"></div><span style="font-size: 11px; color: var(--color-text-secondary);">Livre</span></div>
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 10px; height: 10px; background: #06A77D; border-radius: 2px;"></div><span style="font-size: 11px; color: var(--color-text-secondary);">Quadra</span></div>
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 10px; height: 10px; background: #2E86AB; border-radius: 2px;"></div><span style="font-size: 11px; color: var(--color-text-secondary);">Salão/Deck</span></div>
+        <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 10px; height: 10px; background: #FAC775; border-radius: 2px;"></div><span style="font-size: 11px; color: var(--color-text-secondary);">Manutenção</span></div>
+      </div>
+    </div>
+
+    <!-- Linha de ações rápidas + reservas recentes -->
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;">
+
+      <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px;">
+        <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 10px;">Ações rápidas</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button onclick="sendPrompt('Quero ver como o síndico bloquearia a piscina para manutenção pelo painel admin')" style="text-align: left; justify-content: flex-start; font-size: 12px;">Bloquear área para manutenção</button>
+          <button onclick="sendPrompt('Como o síndico altera os horários de funcionamento de uma área pelo painel?')" style="text-align: left; justify-content: flex-start; font-size: 12px;">Alterar horários de funcionamento</button>
+          <button onclick="sendPrompt('Mostre como funcionaria a exportação de relatórios mensais de uso para a portaria')" style="text-align: left; justify-content: flex-start; font-size: 12px;">Exportar relatório mensal</button>
+        </div>
+      </div>
+
+      <div style="background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px;">
+        <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 10px;">Últimas reservas</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div><span style="color: var(--color-text-primary); font-weight: 500;">Casa 247</span> · Quadra</div>
+            <div style="color: var(--color-text-secondary);">há 2 min</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div><span style="color: var(--color-text-primary); font-weight: 500;">Casa 089</span> · Salão</div>
+            <div style="color: var(--color-text-secondary);">há 14 min</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div><span style="color: var(--color-text-primary); font-weight: 500;">Casa 401</span> · Quadra</div>
+            <div style="color: var(--color-text-secondary);">há 38 min</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+            <div><span style="color: var(--color-text-primary); font-weight: 500;">Casa 134</span> · Quadra</div>
+            <div style="color: var(--color-text-secondary);">há 1h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER de stack técnica -->
+  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 0.5px solid var(--color-border-tertiary); flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; gap: 18px; flex-wrap: wrap;">
+      <div style="font-size: 11px; color: var(--color-text-secondary);"><span style="color: var(--color-text-primary); font-weight: 500;">Frontend:</span> Ionic 8 + Angular 17</div>
+      <div style="font-size: 11px; color: var(--color-text-secondary);"><span style="color: var(--color-text-primary); font-weight: 500;">Backend:</span> NestJS + PostgreSQL</div>
+      <div style="font-size: 11px; color: var(--color-text-secondary);"><span style="color: var(--color-text-primary); font-weight: 500;">Auth:</span> JWT + bcrypt</div>
+    </div>
+    <button onclick="sendPrompt('Quero discutir tecnicamente a arquitetura de concorrência do backend NestJS para evitar dois moradores reservarem o mesmo horário simultaneamente')" style="font-size: 11px;">Detalhes técnicos ↗</button>
+  </div>
+</div>
+
+<script>
+  // ====== ESTADO ======
+  const state = {
+    view: 'morador',
+    area: 'quadra',
+    selectedSlot: null,
+    bookedSlots: new Set(['10:00','14:00','15:00','20:00']),
+  };
+
+  const slots = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+
+  // ====== TROCA DE VIEWS ======
+  function switchView(view) {
+    state.view = view;
+    const vMorador = document.getElementById('viewMorador');
+    const vSindico = document.getElementById('viewSindico');
+    const tMorador = document.getElementById('tabMorador');
+    const tSindico = document.getElementById('tabSindico');
+
+    if (view === 'morador') {
+      vMorador.style.display = 'grid';
+      vSindico.style.display = 'none';
+      tMorador.style.background = 'var(--color-background-primary)';
+      tMorador.style.color = 'var(--color-text-primary)';
+      tMorador.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      tSindico.style.background = 'transparent';
+      tSindico.style.color = 'var(--color-text-secondary)';
+      tSindico.style.boxShadow = 'none';
+    } else {
+      vMorador.style.display = 'none';
+      vSindico.style.display = 'flex';
+      tSindico.style.background = 'var(--color-background-primary)';
+      tSindico.style.color = 'var(--color-text-primary)';
+      tSindico.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+      tMorador.style.background = 'transparent';
+      tMorador.style.color = 'var(--color-text-secondary)';
+      tMorador.style.boxShadow = 'none';
+    }
+  }
+
+  // ====== SELECIONAR ÁREA ======
+  function selectArea(area) {
+    state.area = area;
+    state.selectedSlot = null;
+
+    const aQ = document.getElementById('areaQuadra');
+    const aD = document.getElementById('areaDeck');
+
+    if (area === 'quadra') {
+      aQ.style.borderColor = '#06A77D';
+      aQ.style.background = '#ECFAF4';
+      aD.style.borderColor = '#D6DEE6';
+      aD.style.background = 'white';
+    } else {
+      aD.style.borderColor = '#2E86AB';
+      aD.style.background = '#E6F1FB';
+      aQ.style.borderColor = '#D6DEE6';
+      aQ.style.background = 'white';
+    }
+    renderSlots();
+    updateConfirmBtn();
+  }
+
+  // ====== RENDERIZAR HORÁRIOS ======
+  function renderSlots() {
+    const container = document.getElementById('slotsContainer');
+    container.innerHTML = '';
+
+    slots.forEach(slot => {
+      const btn = document.createElement('button');
+      const isBooked = state.bookedSlots.has(slot);
+      const isSelected = state.selectedSlot === slot;
+
+      btn.textContent = slot;
+      btn.style.cssText = 'border: none; padding: 9px 4px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: ' + (isBooked ? 'not-allowed' : 'pointer') + '; transition: all 0.15s;';
+
+      if (isBooked) {
+        btn.style.background = '#F4F7FA';
+        btn.style.color = '#B4B2A9';
+        btn.style.textDecoration = 'line-through';
+        btn.disabled = true;
+      } else if (isSelected) {
+        btn.style.background = '#06A77D';
+        btn.style.color = 'white';
+      } else {
+        btn.style.background = 'white';
+        btn.style.color = '#2C3E50';
+        btn.style.border = '1px solid #D6DEE6';
+        btn.onclick = () => {
+          state.selectedSlot = slot;
+          renderSlots();
+          updateConfirmBtn();
+        };
+      }
+      container.appendChild(btn);
+    });
+  }
+
+  // ====== BOTÃO DE CONFIRMAÇÃO ======
+  function updateConfirmBtn() {
+    const btn = document.getElementById('confirmBtn');
+    const msg = document.getElementById('confirmMsg');
+    msg.style.display = 'none';
+
+    if (state.selectedSlot) {
+      btn.disabled = false;
+      btn.style.background = '#06A77D';
+      btn.style.color = 'white';
+      btn.style.cursor = 'pointer';
+      btn.textContent = 'Reservar ' + state.selectedSlot + ' – ' + nextHour(state.selectedSlot);
+    } else {
+      btn.disabled = true;
+      btn.style.background = '#D6DEE6';
+      btn.style.color = '#6B7785';
+      btn.style.cursor = 'not-allowed';
+      btn.textContent = 'Selecione um horário';
+    }
+  }
+
+  function nextHour(time) {
+    const h = parseInt(time.split(':')[0]);
+    return String(h + 2).padStart(2, '0') + ':00';
+  }
+
+  function confirmReserva() {
+    if (!state.selectedSlot) return;
+    const msg = document.getElementById('confirmMsg');
+    msg.textContent = '✓ Reserva confirmada para ' + state.selectedSlot + ' às ' + nextHour(state.selectedSlot);
+    msg.style.display = 'block';
+
+    state.bookedSlots.add(state.selectedSlot);
+    state.selectedSlot = null;
+    renderSlots();
+
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.style.background = '#D6DEE6';
+    btn.style.color = '#6B7785';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Selecione um horário';
+  }
+
+  // ====== INIT ======
+  renderSlots();
+</script>

@@ -1,0 +1,438 @@
+# Implementation Plan: Apresentação Interativa de Vendas
+
+## Overview
+
+Convert the feature design into a series of prompts for a code-generation LLM that will implement each step with incremental progress. Make sure that each prompt builds on the previous prompts, and ends with wiring things together. There should be no hanging or orphaned code that isn't integrated into a previous step. Focus ONLY on tasks that involve writing, modifying, or testing code.
+
+A implementação está organizada em camadas incrementais: primeiro o bootstrap do projeto (Vite + React + TS + Tailwind + Vitest + fast-check), depois os módulos de dados tipados (`proposta.ts`, `demoConfig.ts`, `benchmark.ts`, `navegacao.ts`), em seguida o núcleo puro da Demo (`demoReducer`) com todas as propriedades de correção validadas via PBT antes da UI ser construída, e só então os componentes React das seções de apresentação, navegação, CTAs, Modo Apresentador e formulário de aceite. A última fase cobre deploy na Vercel e CI com Lighthouse.
+
+Tasks marcadas com `*` são opcionais (testes extras de E2E, snapshots visuais, service worker). Não as implementar por padrão.
+
+## Tasks
+
+- [x] 1. Bootstrap do projeto e ferramental
+  - [x] 1.1 Inicializar projeto Vite + React 18 + TypeScript
+    - Rodar `pnpm create vite@latest apresentacao-interativa-vendas --template react-ts`
+    - Configurar `tsconfig.json` com `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`
+    - Configurar `vite.config.ts` com plugin React e alias `@` → `src/`
+    - _Requirements: 10.1_
+  - [x] 1.2 Instalar e configurar TailwindCSS 3 com tokens do design
+    - Instalar `tailwindcss`, `postcss`, `autoprefixer`
+    - Criar `tailwind.config.js` com tokens de cor (`--color-background-primary`, `--color-text-secondary`, etc.) mapeados do HTML original
+    - Criar `src/styles/tokens.css` declarando as CSS custom properties em `:root`
+    - Importar `tokens.css` e `@tailwind base/components/utilities` em `src/index.css`
+    - _Requirements: 10.1, 10.4, 10.5, 10.7_
+  - [x] 1.3 Instalar dependências de teste e validação
+    - Instalar `vitest`, `@vitest/ui`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`
+    - Instalar `fast-check` e `@fast-check/vitest`
+    - Instalar `zod` para validação do formulário de aceite
+    - Instalar `react-intersection-observer` para scroll-spy
+    - Configurar `vitest.config.ts` com `environment: 'jsdom'` e `setupFiles` apontando para `src/test/setup.ts`
+    - Criar `src/test/setup.ts` com `import '@testing-library/jest-dom'`
+    - _Requirements: 10.1, 12 (todos)_
+  - [x] 1.4 Configurar lint, typecheck e scripts do `package.json`
+    - Instalar ESLint + Prettier com presets React/TypeScript
+    - Adicionar scripts: `dev`, `build`, `preview`, `typecheck`, `lint`, `test`, `test:run`, `test:coverage`
+    - Adicionar `prebuild` apontando para script `scripts/validate-proposta.ts` (placeholder; será criado em 4.3)
+    - _Requirements: 10.1_
+
+- [x] 2. Módulo de dados comerciais (`proposta.ts`) e helpers monetários
+  - [x] 2.1 Definir tipos e literal `proposta` em `src/data/proposta.ts`
+    - Criar interfaces `Proposta`, `AreaEscopo`, `FaseCronograma`, `ItemInvestimento` conforme Design
+    - Declarar `export const proposta: Proposta = { ... }` com todos os valores literais da Proposta (cabeçalho 05/05/2026, 520 unidades, 10 semanas, itens R$ 15.000 + R$ 18.500 = R$ 33.500, mensalidade R$ 1.150, entrada/saldo 50%, garantia 90 dias, formas de pagamento)
+    - Todos os valores monetários em centavos (`number`), datas em ISO 8601
+    - Marcar tudo como `readonly`/`as const`
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.9, 10.3_
+  - [x] 2.2 Implementar helpers `formatarMoeda`, `parseMoeda` e `diasRestantes`
+    - `formatarMoeda(centavos: number): string` — locale pt-BR, prefixo `R$ `, separador de milhares `.`, decimal `,`
+    - `parseMoeda(formatado: string): number` — aceita o output de `formatarMoeda`, retorna centavos
+    - `diasRestantes(proposta: Proposta, hoje: Date): number` — calcula `(dataEmissao + validadeDias) - hoje` em dias
+    - _Requirements: 2.8, 4.8_
+  - [x] 2.3 Implementar `validarProposta(p: Proposta): void`
+    - Lança `Error` descritivo se `soma(p.investimento.itens[].valorCentavos) !== p.investimento.totalCentavos`
+    - Lança se `entradaPct + saldoPct !== 100`
+    - Lança se `p.cabecalho.validadeDias <= 0`
+    - _Requirements: 2.10, 12.4_
+  - [x] 2.4 Property test P1 — Totalização do investimento (`src/data/__tests__/proposta.test.ts`)
+    - **Property 1: Totalização do investimento**
+    - **Validates: Requirements 2.4, 2.6, 2.10, 12.4**
+    - Example-based: `expect(() => validarProposta(proposta)).not.toThrow()`
+    - fast-check: gerar arrays arbitrários de `ItemInvestimento` e verificar que `validarProposta` com `totalCentavos = soma(itens)` sempre passa, e falha quando `totalCentavos !== soma`
+  - [x] 2.5 Property test P2 — Round-trip de formatação monetária (`src/data/__tests__/formatarMoeda.pbt.test.ts`)
+    - **Property 2: Round-trip de formatação monetária**
+    - **Validates: Requirements 2.8, 12.8**
+    - fast-check com `fc.integer({ min: 0, max: 1e11 })`, `numRuns: 1000`
+    - Assertion: `parseMoeda(formatarMoeda(c)) === c`
+  - [x] 2.6 Property test P10 — Validade monotônica (`src/data/__tests__/proposta.test.ts`)
+    - **Property 10: Validade monotônica**
+    - **Validates: Requirements 4.8**
+    - fast-check com `fc.date()` para datas antes e depois do vencimento
+    - Assertion: se `d > dataEmissao + validadeDias` então `diasRestantes <= 0`; se `d < dataEmissao` então `diasRestantes >= validadeDias`
+
+- [x] 3. Demais módulos de dados tipados
+  - [x] 3.1 Criar `src/data/demoConfig.ts` com `AREAS`, `KPIS_SINDICO`, `ACOES_RAPIDAS_SINDICO`, `ULTIMAS_RESERVAS_MOCK`
+    - `AREAS` como `Readonly<Record<AreaId, AreaConfig>>` com Quadra (reservável, 08–22h úteis, 08–00h fds, 2h max), Deck (reservável, reserva exclusiva), Piscina (`reservavel: false`)
+    - `KPIS_SINDICO` com "Reservas hoje: 23 (+18%)", "Ocupação: 76%", "Casas ativas: 487/520", "Conflitos: 100% automático"
+    - `ACOES_RAPIDAS_SINDICO` com títulos e descrições que substituem os antigos `sendPrompt`
+    - `ULTIMAS_RESERVAS_MOCK` preservando as 4 reservas recentes do HTML original
+    - _Requirements: 3.3, 3.4, 3.10, 3.11, 10.3, 10.8, 11.2, 11.5_
+  - [x] 3.2 Criar `src/data/benchmark.ts` com `BENCHMARK` e `FONTES_BENCHMARK`
+    - 4 linhas: "Esta proposta (Lavita)", "SaaS white-label", "Dev customizado Sudeste", "Concorrente regional"
+    - Colunas: `custoInicial`, `custoMensal`, `prazoEntrega`, `propriedadeCodigo`, `customizacao`
+    - `FONTES_BENCHMARK` com notas/disclaimers citados no rodapé
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 10.3_
+  - [x] 3.3 Criar `src/data/navegacao.ts` com `SECOES`
+    - Array ordenado: `hero`, `demo`, `escopo`, `cronograma`, `investimento`, `benchmarking`, `diferenciais`, `aceite`
+    - Cada seção com `id`, `label`, `notasApresentador?`
+    - _Requirements: 1.1, 1.2, 7.3, 10.3_
+  - [x] 3.4 Unit tests para `demoConfig`, `benchmark`, `navegacao`
+    - Verifica que `AREAS.piscina.reservavel === false`
+    - Verifica que `SECOES` tem exatamente 8 itens na ordem esperada
+    - Snapshot da tabela de benchmark
+    - _Requirements: 3.10, 5.1, 1.1_
+
+- [x] 4. Script de validação de build e checkpoint inicial
+  - [x] 4.1 Criar `scripts/validate-proposta.ts`
+    - Importa `proposta` e `validarProposta` de `src/data/proposta.ts`
+    - Chama `validarProposta(proposta)`; em caso de throw, imprime mensagem e sai com `process.exit(1)`
+    - _Requirements: 2.10, 12.4_
+  - [x] 4.2 Integrar script no `prebuild` do `package.json`
+    - `"prebuild": "tsx scripts/validate-proposta.ts"`
+    - Instalar `tsx` como devDependency
+    - _Requirements: 2.10_
+  - [x] 4.3 Checkpoint — Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Núcleo puro da Demo: `demoReducer` e hook `useDemoReservas`
+  - [x] 5.1 Definir tipos em `src/features/demo/types.ts`
+    - `AreaId`, `Slot` (template literal), `DemoState`, `DemoAction`, `AreaConfig`
+    - `initialDemoState` com `view: 'morador'`, `areaSelecionada: 'quadra'`, `reservasPorArea: { quadra: [], deck: [], piscina: [] }`, seed de reservas de exemplo para a Quadra (10:00, 14:00, 15:00, 20:00)
+    - _Requirements: 3.9, 10.8, 11.5_
+  - [x] 5.2 Implementar `demoReducer(state, action): DemoState` em `src/features/demo/demoReducer.ts`
+    - `SWITCH_VIEW`: altera `state.view` sem tocar em `reservasPorArea`, `areaSelecionada` ou `slotSelecionado` (Property 7)
+    - `SELECT_AREA`: altera `areaSelecionada` e reseta `slotSelecionado` para `null`
+    - `SELECT_SLOT`: no-op se área é `piscina` (Property 8); no-op se slot ocupado (Property 3); no-op se `slot + duracaoMaxHoras > fechamento` (Property 5)
+    - `CONFIRM`: no-op se `slotSelecionado === null` ou área é `piscina`; adiciona slot a `reservasPorArea[area]` apenas se ainda não está presente (idempotência); atualiza `ultimaConfirmacao`; reseta `slotSelecionado`
+    - `RESET`: volta ao `initialDemoState`
+    - Reducer é **puro**: mesmas entradas → mesma saída, sem efeitos colaterais
+    - _Requirements: 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 11.5, 12.2, 12.6, 12.7, 12.9_
+  - [x] 5.3 Implementar helpers derivados em `src/features/demo/derived.ts`
+    - `slotsComStatus(state, area): ReadonlyArray<{ slot, status }>` — retorna para cada slot em `AREAS[area].slotsBase` o status `'livre' | 'ocupado' | 'fora-do-expediente'`
+    - `fimDaReservaSelecionada(state): Slot | null` — soma `duracaoMaxHoras` ao `slotSelecionado`, respeitando fechamento
+    - `podeConfirmar(state): boolean`
+    - _Requirements: 3.5, 3.8, 12.3, 12.6_
+  - [x] 5.4 Implementar hook `useDemoReservas` em `src/features/demo/useDemoReservas.ts`
+    - `const [state, dispatch] = useReducer(demoReducer, { ...initialDemoState, ...initial })`
+    - Retorna `{ state, dispatch, slotsComStatus, fimDaReservaSelecionada, podeConfirmar }`
+    - _Requirements: 3.13, 10.8_
+  - [x] 5.5 Unit tests exemplares do reducer em `src/features/demo/__tests__/demoReducer.test.ts`
+    - Cobrir casos felizes de cada action
+    - Cobrir seed inicial de reservas
+    - _Requirements: 3.4, 3.5, 3.6, 3.10_
+  - [x] 5.6 Property test P3 — Não-duplicidade de reserva (`src/features/demo/__tests__/demoReducer.pbt.test.ts`)
+    - **Property 3: Não-duplicidade de reserva**
+    - **Validates: Requirements 3.7, 11.5, 12.2, 12.7**
+    - Arbitrário de `DemoAction` via `fc.oneof(...)` e sequência via `fc.array(action, { maxLength: 50 })`
+    - Assertion: para toda área, `new Set(final.reservasPorArea[area]).size === final.reservasPorArea[area].length`
+    - `numRuns: 200`
+  - [x] 5.7 Property test P4 — Particionamento dos slots (`demoReducer.pbt.test.ts`)
+    - **Property 4: Particionamento dos slots por área**
+    - **Validates: Requirements 12.3**
+    - Após cada sequência de ações, para cada área reservável: `slotsLivres ∪ slotsOcupados ∪ slotsForaDoExpediente === AREAS[area].slotsBase` e os três conjuntos são disjuntos
+    - `numRuns: 200`
+  - [x] 5.8 Property test P5 — Respeito ao horário de fechamento (`demoReducer.pbt.test.ts`)
+    - **Property 5: Respeito ao horário de fechamento**
+    - **Validates: Requirements 3.8, 11.5, 12.6**
+    - Para toda sequência de ações, nenhum slot em `final.reservasPorArea[area]` satisfaz `slot + duracaoMaxHoras > fechamento`
+    - `numRuns: 200`
+  - [x] 5.9 Property test P6 — Isolamento de estado por área (`demoReducer.pbt.test.ts`)
+    - **Property 6: Isolamento de estado por área**
+    - **Validates: Requirements 3.9, 11.5**
+    - Gera sequência com `areaSelecionada` fixada; verifica que `reservasPorArea[outraArea]` permanece idêntico ao estado inicial
+    - `numRuns: 150`
+  - [x] 5.10 Property test P7 — Preservação ao alternar Morador ↔ Síndico (`demoReducer.pbt.test.ts`)
+    - **Property 7: Preservação de estado ao alternar aba**
+    - **Validates: Requirements 12.9, 3.2**
+    - `for all state: depois de SWITCH_VIEW('sindico'); SWITCH_VIEW('morador'), os campos areaSelecionada, slotSelecionado e reservasPorArea são idênticos ao original`
+    - `numRuns: 100`
+  - [x] 5.11 Property test P8 — Piscina não é reservável (`demoReducer.pbt.test.ts`)
+    - **Property 8: Piscina não é reservável**
+    - **Validates: Requirements 3.10, 11.5**
+    - Força `SELECT_AREA piscina` no início e gera sequência; assertion: `final.reservasPorArea.piscina.length === 0` e `final.ultimaConfirmacao?.area !== 'piscina'`
+    - `numRuns: 150_`
+
+- [x] 6. Checkpoint — Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Componentes da Demo interativa
+  - [x] 7.1 Implementar `AreaCard` em `src/features/demo/components/AreaCard.tsx`
+    - Props: `area: AreaConfig`, `selecionada: boolean`, `onClick(): void`
+    - Renderiza card com cor/borda apropriada; `role="radio"`, `aria-checked`
+    - Caso da Piscina: `area.reservavel === false` → card com badge "Informativa"
+    - Substitui estilos inline por classes Tailwind
+    - _Requirements: 3.4, 3.10, 10.4, 11.5_
+  - [x] 7.2 Implementar `SlotGrid` em `src/features/demo/components/SlotGrid.tsx`
+    - Recebe `slotsComStatus` e `slotSelecionado` do hook
+    - Renderiza grid 3-col de botões; status `ocupado` → `disabled`, `line-through`, cursor `not-allowed`
+    - Status `fora-do-expediente` → `disabled` + tooltip "Fora do horário"
+    - Acessibilidade: `aria-pressed` no botão selecionado
+    - _Requirements: 3.5, 3.7, 3.8, 9.3, 11.5_
+  - [x] 7.3 Implementar `ConfirmButton` e `ConfirmMessage` em `src/features/demo/components/`
+    - `ConfirmButton`: usa `podeConfirmar` do hook; texto "Reservar HH:MM – HH:MM" quando ativo, "Selecione um horário" quando inativo
+    - `ConfirmMessage`: exibe confirmação com `role="status"` / `aria-live="polite"` após `CONFIRM`
+    - _Requirements: 3.5, 3.6, 9.4_
+  - [x] 7.4 Implementar `TimelineProximas` em `src/features/demo/components/TimelineProximas.tsx`
+    - Lista estática das "próximas reservas" do morador (preserva layout original com barras laterais coloridas)
+    - _Requirements: 11.4_
+  - [x] 7.5 Implementar `MobileMockup` em `src/features/demo/components/MobileMockup.tsx`
+    - Container com frame azul-marinho, status bar, header com "CASA 247 · BLOCO B"
+    - Compõe `AreaCard[]`, `SlotGrid`, `ConfirmButton`, `ConfirmMessage`
+    - _Requirements: 3.3, 11.1_
+  - [x] 7.6 Implementar `DemoMorador` em `src/features/demo/DemoMorador.tsx`
+    - Grid 2-col responsivo (colapsa em mobile)
+    - Lado esquerdo: `MobileMockup`; lado direito: texto explicativo + mini-cards "2h" e "24/7" + `TimelineProximas` + botão "Ver fluxo completo" (abre `DialogoFluxoMorador`)
+    - Usa `useDemoReservas`
+    - _Requirements: 3.3, 9.1, 11.1, 11.4_
+  - [x] 7.7 Implementar componentes do painel do Síndico em `src/features/demo/components/sindico/`
+    - `KpiGrid` (4 KPIs de `KPIS_SINDICO`)
+    - `MapaOcupacao` (barras horizontais por área + legenda, preserva layout do HTML original)
+    - `AcoesRapidas` (3 botões que abrem `TooltipFeature` em vez de `sendPrompt`)
+    - `UltimasReservas` (lista de `ULTIMAS_RESERVAS_MOCK`)
+    - _Requirements: 3.11, 3.12, 10.6, 11.2, 11.3, 11.5_
+  - [x] 7.8 Implementar `DemoSindico` compondo os 4 subcomponentes
+    - _Requirements: 3.11_
+  - [x] 7.9 Implementar `DemoTabs` com ARIA correto
+    - `role="tablist"`, dois botões com `role="tab"`, `aria-selected`, `aria-controls`
+    - Navegação por teclado (setas esquerda/direita)
+    - `dispatch({ type: 'SWITCH_VIEW', view })`
+    - _Requirements: 3.1, 3.2, 9.3, 11.5_
+  - [x] 7.10 Implementar `DialogoFluxoMorador`, `DialogoArquiteturaBackend`, `TooltipFeature` em `src/components/ui/`
+    - Modal acessível (focus trap, `aria-modal`, tecla `Esc` fecha)
+    - Tooltip com `aria-describedby`
+    - Substituem todas as chamadas de `sendPrompt`
+    - _Requirements: 3.12, 10.6, 11.5_
+  - [x] 7.11 Implementar `DemoSection` root em `src/features/demo/DemoSection.tsx`
+    - Compõe `DemoTabs` + render condicional de `DemoMorador` ou `DemoSindico`
+    - Header com "DEMONSTRAÇÃO INTERATIVA · App Condomínio Digital · 520 unidades · Ionic + NestJS · iOS & Android" (footer de stack ao final da seção, alinhado com a Proposta — sem versões específicas para evitar inconsistência)
+    - _Requirements: 3.1, 3.2, 11.5_
+  - [x] 7.12 Unit tests RTL para `DemoMorador` e `DemoTabs`
+    - Clica em área, seleciona slot, confirma, verifica que o slot fica riscado no DOM
+    - Clica em tab "Síndico", verifica `aria-selected="true"` e que KPIs aparecem
+    - _Requirements: 3.2, 3.5, 3.6, 3.7_
+
+- [x] 8. Seções de conteúdo da Apresentação
+  - [x] 8.1 Implementar `Hero` em `src/components/sections/Hero.tsx`
+    - Headline (proposta de valor de uma linha alinhada ao escopo da Lavita)
+    - Subheadline com destaque de "MVP em uso real a partir da Semana 7"
+    - CTA primário "Ver proposta" (scroll para `#investimento`) e CTA secundário "Ver demo" (scroll para `#demo`)
+    - `id="hero"`
+    - _Requirements: 4.1, 4.7, 1.1_
+  - [x] 8.2 Implementar `EscopoSection` em `src/components/sections/EscopoSection.tsx`
+    - Tabela das 3 áreas (Quadra, Piscina, Deck e Salão) com horários úteis, fds e regra principal
+    - Lê de `proposta.escopo`
+    - `id="escopo"`
+    - _Requirements: 2.2, 10.3_
+  - [x] 8.3 Implementar `CronogramaSection` em `src/components/sections/CronogramaSection.tsx`
+    - Tabela das 4 fases × 10 semanas com atividades e entregáveis
+    - Lê de `proposta.cronograma`
+    - `id="cronograma"`
+    - _Requirements: 2.3, 10.3_
+  - [x] 8.4 Implementar `ValidadeBadge` em `src/components/ui/ValidadeBadge.tsx`
+    - Usa `diasRestantes(proposta, new Date())`
+    - Exibe "Validade: N dias restantes" com cor semântica (verde > 15, amarelo 1–15, vermelho ≤ 0)
+    - _Requirements: 4.8_
+  - [x] 8.5 Implementar `InvestimentoSection` em `src/components/sections/InvestimentoSection.tsx`
+    - Tabela de itens (R$ 15.000 + R$ 18.500 = R$ 33.500) formatados via `formatarMoeda`
+    - Bloco de mensalidade R$ 1.150 + itens inclusos
+    - Condições: entrada 50% / saldo 50%, garantia 90 dias, formas de pagamento
+    - Renderiza `ValidadeBadge` próximo ao total
+    - `id="investimento"`
+    - _Requirements: 2.4, 2.5, 2.6, 2.7, 2.8, 4.8, 10.3_
+  - [x] 8.6 Implementar `BenchmarkSection` em `src/components/sections/BenchmarkSection.tsx`
+    - Tabela responsiva renderizando `BENCHMARK`
+    - Destaca a linha "Esta proposta (Lavita)" (`aria-current="true"`, background diferenciado)
+    - Rodapé com `FONTES_BENCHMARK`
+    - Subseção "Por que sob medida" com 3 bullets
+    - `id="benchmarking"`
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - [x] 8.7 Implementar `DiferenciaisSection` em `src/components/sections/DiferenciaisSection.tsx`
+    - Grid de cards com diferenciais (automação total, lançamento gradual, custo-benefício Fortaleza)
+    - Inclui bloco de ROI quantificado (horas/mês economizadas, conflitos evitados)
+    - Inclui bloco de prova social (credenciais técnicas + depoimento do desenvolvedor + menção a stacks NestJS/Ionic)
+    - `id="diferenciais"`
+    - _Requirements: 4.3, 4.4, 4.7_
+  - [x] 8.8 Implementar shell de `AceiteSection` (o formulário será tarefa 11)
+    - Título, subtítulo, 3 CTAs: "Aceitar proposta" (abre modal com `AceiteForm`), "Falar no WhatsApp" (link `wa.me/<numero>` com mensagem pré-preenchida), "Baixar PDF da proposta" (link `<a download>`)
+    - `id="aceite"`
+    - _Requirements: 6.1, 6.5, 6.6, 6.7_
+  - [x] 8.9 Unit tests RTL das seções
+    - Cada seção renderiza sem crash, tem o `id` correto e lê dados de `proposta.ts`
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 4.8, 5.1, 5.5_
+
+- [x] 9. Navegação, CTAs persistentes e scroll-spy
+  - [x] 9.1 Implementar `NavBar` em `src/components/layout/NavBar.tsx`
+    - Lê `SECOES` de `navegacao.ts`
+    - Desktop: barra fixa no topo com links âncora
+    - Scroll suave via `element.scrollIntoView({ behavior: 'smooth' })`; respeita `prefers-reduced-motion`
+    - _Requirements: 1.1, 1.2, 1.3, 9.3_
+  - [x] 9.2 Implementar scroll-spy com `react-intersection-observer`
+    - Para cada seção, `useInView({ threshold: 0.4 })`
+    - Estado `activeId` em `App.tsx`, passado para `NavBar`
+    - Item ativo recebe `aria-current="location"` e estilo destacado
+    - Fallback para navegadores sem `IntersectionObserver` via evento `scroll` com debounce 100ms
+    - _Requirements: 1.4_
+  - [x] 9.3 Implementar `NavBarMobile` com menu hambúrguer
+    - Viewport `< 768px`: oculta `NavBar` e mostra botão hambúrguer que abre overlay full-screen com as mesmas `SECOES`
+    - _Requirements: 1.5, 9.1_
+  - [x] 9.4 Implementar `CTAFloating` em `src/components/layout/CTAFloating.tsx`
+    - Botão flutuante fixo (bottom-right) "Aceitar proposta" em desktop, barra inferior full-width em mobile
+    - Sempre visível após scroll > 100vh, oculto quando a seção `#aceite` está no viewport
+    - _Requirements: 4.5, 12.5_
+  - [x] 9.5 Implementar `ScrollReminderToast` em `src/components/layout/ScrollReminderToast.tsx`
+    - Detecta scroll > 70% do documento
+    - Se o usuário ainda não clicou em nenhum CTA (tracked via state no `App`), exibe toast não-bloqueante
+    - Dismissível; sessão guardada em memória (não persiste recarregamento)
+    - _Requirements: 4.6_
+  - [x] 9.6 Unit tests para `NavBar` e `CTAFloating`
+    - Testa que clicar em item da nav chama `scrollIntoView` com id correto
+    - Testa que CTAFloating desaparece quando `#aceite` está visível
+    - _Requirements: 1.3, 4.5_
+
+- [x] 10. Modo Apresentador
+  - [x] 10.1 Implementar `PresenterContext` e `PresenterProvider` em `src/features/presenter/`
+    - Lê `new URLSearchParams(location.search).get('modo') === 'apresentador'` uma única vez no mount
+    - Expõe `{ active, currentSectionIndex, goToSection, copyShareLink }`
+    - `copyShareLink` usa `navigator.clipboard.writeText(location.href)` com fallback para `document.execCommand('copy')`
+    - _Requirements: 7.1, 7.4, 7.5_
+  - [x] 10.2 Implementar keybindings globais em `useEffect` dentro do provider
+    - `ArrowRight`/`PageDown` → `goToSection(current + 1)`
+    - `ArrowLeft`/`PageUp` → `goToSection(current - 1)`
+    - `Esc` → `goToSection(0)`
+    - Keybindings ativos apenas quando `active === true`
+    - _Requirements: 7.2_
+  - [x] 10.3 Implementar `PresenterControls` em `src/features/presenter/PresenterControls.tsx`
+    - Renderiza apenas quando `active === true`
+    - Botões de navegação, indicador de seção atual, botão "Copiar link de compartilhamento"
+    - Notas do apresentador renderizadas abaixo de cada seção (lê `SECOES[i].notasApresentador`) apenas quando `active`
+    - _Requirements: 7.2, 7.3, 7.4, 7.5_
+  - [x] 10.4 Unit tests do Modo Apresentador
+    - Simula `URLSearchParams` com e sem `?modo=apresentador`
+    - Verifica renderização condicional de `PresenterControls` e notas
+    - Verifica que `copyShareLink` chama `navigator.clipboard.writeText`
+    - _Requirements: 7.1, 7.2, 7.3, 7.5_
+
+- [x] 11. Formulário de aceite (`AceiteForm` + integração Formspree)
+  - [x] 11.1 Implementar schema zod em `src/features/aceite/schema.ts`
+    - Campos: `nome` (min 3), `documento` (regex CPF ou CNPJ), `email` (zod.email), `telefone` (regex BR), `aceitouTermos` (true literal)
+    - Exporta tipo `AceiteFormData` inferido
+    - _Requirements: 6.2, 6.4_
+  - [x] 11.2 Implementar `AceiteForm` em `src/features/aceite/AceiteForm.tsx`
+    - Props: `endpoint: string`, `onSuccess?: (data) => void`
+    - Estado `status: AceiteStatus` (`idle | submitting | success | error`)
+    - Validação por campo usando zod `safeParse` com mensagens pt-BR
+    - `aria-invalid` e mensagem abaixo de cada campo inválido
+    - Checkbox de aceite referenciando o texto da Proposta
+    - _Requirements: 6.2, 6.4, 9.3_
+  - [x] 11.3 Implementar submissão com `fetch` + `AbortController` (timeout 10s)
+    - POST JSON para `endpoint`; success → `status: success` + callback
+    - Erro de rede/5xx/timeout → `status: error` com banner vermelho, CTA "Tentar novamente" e CTA "Falar no WhatsApp"
+    - Dados digitados preservados em erro
+    - _Requirements: 6.3_
+  - [x] 11.4 Configurar endpoint via variável de ambiente
+    - `VITE_FORMSPREE_ENDPOINT` em `.env.example`
+    - Se ausente em produção, `AceiteForm` colapsa graciosamente: botão "Aceitar" vira "Falar no WhatsApp"
+    - Em dev, banner amarelo de aviso
+    - _Requirements: 6.3_
+  - [x] 11.5 Unit tests RTL do `AceiteForm`
+    - Caso válido: mock de `fetch` retorna 200, verifica `onSuccess` chamado e UI de confirmação
+    - Caso inválido: submete com campos vazios, verifica mensagens de erro por campo
+    - Caso erro de rede: mock `fetch` rejeita, verifica banner de erro e preservação dos dados
+    - _Requirements: 6.2, 6.3, 6.4_
+
+- [x] 12. Integração raiz e Property 9
+  - [x] 12.1 Implementar `Layout` em `src/components/layout/Layout.tsx`
+    - Contém `NavBar`/`NavBarMobile`, `CTAFloating`, `ScrollReminderToast`, `Footer`, `<main>` com landmark ARIA
+    - _Requirements: 9.4, 4.5, 4.6_
+  - [x] 12.2 Implementar `Footer` em `src/components/layout/Footer.tsx`
+    - Nome Lavita, contato (`proposta.contato`), link para política de privacidade (placeholder `/privacidade.html`)
+    - _Requirements: 6.7_
+  - [x] 12.3 Implementar `App.tsx` compondo tudo
+    - `PresenterProvider` envolvendo `Layout`
+    - `<main>` renderiza todas as 8 seções na ordem definida por `SECOES`
+    - Cada seção tem o `id` correspondente (`hero`, `demo`, `escopo`, `cronograma`, `investimento`, `benchmarking`, `diferenciais`, `aceite`)
+    - Renderiza `PresenterControls` condicionalmente
+    - _Requirements: 1.1, 1.2, 7.1, 10.2_
+  - [x] 12.4 Property test P9 — Consistência de roteamento (`src/__tests__/App.integration.test.tsx`)
+    - **Property 9: Consistência de roteamento da navegação**
+    - **Validates: Requirements 1.3, 12.1**
+    - Renderiza `<App />` via RTL
+    - Para cada `item ∈ SECOES`, assertion `document.getElementById(item.id)` não é `null`
+    - (Propriedade sobre conjunto finito; test exemplar cobre todos os valores possíveis)
+  - [x] 12.5 Atualizar `index.html` com metadados Open Graph
+    - `<meta property="og:title">`, `og:description`, `og:image` (thumbnail em `public/og-image.png`), `og:type="website"`
+    - `<meta name="viewport" content="width=device-width, initial-scale=1">`
+    - `<title>` e `<meta name="description">` pt-BR
+    - _Requirements: 8.5_
+  - [x] 12.6 Hospedar PDF da Proposta em `public/proposta-app-condominio.pdf`
+    - Link `<a download>` no CTA "Baixar PDF" aponta para `/proposta-app-condominio.pdf`
+    - Fallback: se request retorna 404 no `onError`, exibe toast "PDF indisponível — baixe o .docx"
+    - _Requirements: 6.6_
+
+- [x] 13. Checkpoint — Ensure all tests pass, ask the user if questions arise.
+
+- [x] 14. Acessibilidade e polimento final
+  - [x] 14.1 Auditoria manual de contraste WCAG AA
+    - Verificar pares de cor dos tokens em `tokens.css` atingem 4.5:1 para texto normal, 3:1 para texto grande
+    - Ajustar tokens que falharem
+    - _Requirements: 9.2_
+  - [x] 14.2 Revisar foco visível em todos os elementos interativos
+    - Classe Tailwind `focus-visible:ring-2 focus-visible:ring-offset-2` aplicada em botões, links e inputs
+    - _Requirements: 9.5_
+  - [x] 14.3 Revisar textos alternativos de imagens/ícones informativos
+    - Ícones decorativos com `aria-hidden="true"`
+    - Ícones informativos com `aria-label` ou texto visível
+    - _Requirements: 9.6_
+  - [x] 14.4 Integrar `@axe-core/react` em dev e teste
+    - Instala `@axe-core/react`
+    - Ativa em `main.tsx` apenas em `import.meta.env.DEV`
+    - Adiciona teste `App.integration.test.tsx` rodando `axe(container)` e falhando em issues `serious`/`critical`
+    - _Requirements: 9.2, 9.4, 9.6_
+
+- [ ] 15. Deploy Vercel e CI
+  - [x] 15.1 Criar `vercel.json` com configuração de deploy
+    - `buildCommand: "pnpm build"`, `outputDirectory: "dist"`, `framework: "vite"`
+    - Headers: `Cache-Control: public, max-age=31536000, immutable` para `/assets/*`, `no-cache` para `/index.html`
+    - Redirect `/` → `/index.html` (SPA fallback)
+    - _Requirements: 8.1, 8.3_
+  - [x] 15.2 Criar `.github/workflows/ci.yml`
+    - Triggers: `push` para `main` e `pull_request`
+    - Jobs: `install`, `typecheck`, `lint`, `test:run --coverage`, `build`
+    - Upload de coverage como artefato
+    - _Requirements: 10.1, 12 (todos)_
+  - [x] 15.3 Adicionar Lighthouse CI ao workflow
+    - Usa action `treosh/lighthouse-ci-action`
+    - Configura `lighthouserc.json` com budgets: LCP ≤ 2.5s, CLS ≤ 0.1, TBT ≤ 300ms
+    - Roda contra preview deploy da Vercel
+    - _Requirements: 8.2_
+  - [ ]* 15.4 Configurar service worker (opcional, Req. 8.4 é desejável)
+    - Instala `vite-plugin-pwa`
+    - Estratégia `CacheFirst` para assets estáticos, `NetworkFirst` para `index.html`
+    - Registro silencioso com `.catch(() => {})` para degradação graciosa
+    - _Requirements: 8.4_
+  - [ ]* 15.5 Smoke E2E com Playwright (opcional)
+    - Instala `@playwright/test`
+    - 2 testes: (a) navegação linear de hero → aceite via scroll-spy; (b) submissão do `AceiteForm` com mock de endpoint
+    - Job separado no CI
+    - _Requirements: 1.3, 6.3_
+  - [ ]* 15.6 Snapshots visuais em 320/768/1024/1440 (opcional)
+    - Usa `@playwright/test` para capturar screenshots full-page de cada viewport
+    - Comparação visual manual na revisão de PR
+    - _Requirements: 9.1_
+
+- [x] 16. Checkpoint final — Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marcadas com `*` são opcionais e podem ser puladas para MVP mais rápido (testes extras de PBT que já estão cobertos por unit tests exemplares, E2E, visual snapshots, service worker, axe-core integrado em dev).
+- As propriedades de correção **P1–P10** estão cada uma em sua própria sub-tarefa, posicionadas imediatamente após a implementação correspondente para catch-early. Cada teste referencia explicitamente o número da propriedade e os requisitos que valida.
+- O núcleo puro da Demo (`demoReducer` + helpers) é implementado e testado **antes** de qualquer componente React, garantindo que os 13 bugs documentados na análise do HTML original sejam corrigidos na raiz.
+- O módulo `proposta.ts` é tipado e validado em build-time via `scripts/validate-proposta.ts` (`prebuild` hook), garantindo a invariante de totalização no pipeline de deploy.
+- Esta workflow cria apenas os artefatos de design e planejamento. Para começar a implementação, abra o arquivo `tasks.md` e clique em "Start task" ao lado de cada item.
