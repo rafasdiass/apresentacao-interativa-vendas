@@ -167,8 +167,9 @@ describe('DemoMorador — Piscina informativa', () => {
     await user.click(piscinaCard);
 
     expect(piscinaCard).toHaveAttribute('aria-checked', 'true');
-    expect(
-      screen.getByText(/informativa — não aceita reservas via app/i),
-    ).toBeInTheDocument();
+    // Ancora no bloco informativo da Piscina via `role="note"` (marcação
+    // semântica do SlotGrid) em vez de um fragmento de texto. Mais
+    // resiliente a pequenos ajustes de cópia do aviso.
+    expect(screen.getByRole('note')).toBeInTheDocument();
   });
 });

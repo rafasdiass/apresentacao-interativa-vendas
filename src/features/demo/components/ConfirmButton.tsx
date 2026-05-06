@@ -2,23 +2,30 @@
  * src/features/demo/components/ConfirmButton.tsx — CTA de confirmação
  * de reserva no mockup Morador.
  *
- * Dois estados visuais:
+ * Dois estados visuais, mas sempre renderiza o `<button>` (nunca `null`),
+ * garantindo altura fixa (`h-10`) e a presença de
+ * `[data-testid="confirm-button"]` em qualquer estado do reducer:
  *
- *   - **Habilitado** (`podeConfirmar && slotSelecionado && fim`): texto
- *     `"Reservar HH:MM – HH:MM"`, fundo verde de confirmação, ativo.
- *   - **Desabilitado**: texto `"Selecione um horário"`, fundo cinza,
- *     `disabled`. Cobre tanto "nenhum slot escolhido" quanto "área
- *     não reservável" — a decisão já foi tomada pelo helper
- *     `podeConfirmar` (Task 5.3).
+ *   - **Habilitado** (`podeConfirmar === true`): fundo
+ *     `bg-accent-primary`, texto `text-text-on-dark font-bold`,
+ *     ícone `<CheckIcon />` + rótulo `"Reservar HH:MM – HH:MM"`.
+ *   - **Desabilitado**: fundo `bg-bg-tertiary`, texto
+ *     `text-text-tertiary italic`, rótulo `"Selecione um horário"`
+ *     (sem ícone) + `cursor-not-allowed`.
  *
- * As props `slotSelecionado` e `fim` são `Slot | null` por consistência
- * com o hook `useDemoReservas`; aqui só as lemos quando todas as três
- * condições abaixo valem (tipagem garantida por guarda).
+ * `disabled` segue estritamente `podeConfirmar`; `slotSelecionado`/`fim`
+ * são consultados apenas para compor o rótulo quando habilitado —
+ * se qualquer um for `null` (cenário defensivo, não esperado sob
+ * `podeConfirmar === true`), caímos no rótulo de desabilitado.
  *
- * Requirements: 3.5, 3.6, 9.4
+ * Feedback de press via `active:scale-[0.98]` com
+ * `transition-transform duration-100`. `focus-visible` preservado.
+ *
+ * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 11.2
  */
 
 import type { Slot } from '../types';
+import { CheckIcon } from './icons/CheckIcon';
 
 export interface ConfirmButtonProps {
   readonly podeConfirmar: boolean;
@@ -27,30 +34,41 @@ export interface ConfirmButtonProps {
   readonly onConfirm: () => void;
 }
 
+const BASE_CLASSES =
+  'flex h-10 w-full items-center justify-center gap-2 rounded-md transition-transform duration-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2';
+
+const ENABLED_CLASSES = 'bg-accent-primary text-text-on-dark font-bold';
+
+const DISABLED_CLASSES =
+  'bg-bg-tertiary text-text-tertiary italic cursor-not-allowed';
+
 export function ConfirmButton({
   podeConfirmar,
   slotSelecionado,
   fim,
   onConfirm,
 }: ConfirmButtonProps): JSX.Element {
-  const ativo = podeConfirmar && slotSelecionado !== null && fim !== null;
+  const mostrarRotuloAtivo =
+    podeConfirmar && slotSelecionado !== null && fim !== null;
 
-  const label = ativo
-    ? `Reservar ${slotSelecionado} – ${fim}`
-    : 'Selecione um horário';
-
-  const stateClasses = ativo
-    ? 'bg-accent-primary text-text-on-dark hover:brightness-110'
-    : 'bg-bg-tertiary text-text-tertiary cursor-not-allowed';
+  const stateClasses = podeConfirmar ? ENABLED_CLASSES : DISABLED_CLASSES;
 
   return (
     <button
+      data-testid="confirm-button"
       type="button"
-      disabled={!ativo}
+      disabled={!podeConfirmar}
       onClick={onConfirm}
-      className={`w-full rounded-md px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 ${stateClasses}`}
+      className={`${BASE_CLASSES} ${stateClasses}`}
     >
-      {label}
+      {mostrarRotuloAtivo ? (
+        <>
+          <CheckIcon className="w-4 h-4" />
+          <span>{`Reservar ${slotSelecionado} – ${fim}`}</span>
+        </>
+      ) : (
+        <span>Selecione um horário</span>
+      )}
     </button>
   );
 }

@@ -3,21 +3,28 @@
  *
  * Compõe a experiência completa do Morador em duas colunas:
  *
- *   - **Esquerda** — `MobileMockup` com:
- *       1. Radiogroup de três `AreaCard` (Quadra, Deck, Piscina), na
- *          ordem fixa `['quadra', 'deck', 'piscina']`. Iterar a ordem
- *          explicitamente em vez de `Object.values(AREAS)` evita
- *          depender da ordem de iteração de chaves do objeto — relevante
- *          em `noUncheckedIndexedAccess` onde `Object.values` devolve um
- *          `AreaConfig[]` sem garantia de ordenação estável.
- *       2. `SlotGrid` com os slots da área atualmente selecionada.
- *       3. `ConfirmButton` que dispara `CONFIRM` no reducer.
- *       4. `ConfirmMessage` acessível (role=status) quando há última
- *          confirmação.
+ *   - **Esquerda** — `MobileMockup` com quatro slots nomeados:
+ *       1. `areaCards` — radiogroup com três `AreaCard` (Quadra, Deck,
+ *          Piscina), na ordem fixa `['quadra', 'deck', 'piscina']`.
+ *          Iterar a ordem explicitamente em vez de `Object.values(AREAS)`
+ *          evita depender da ordem de iteração de chaves do objeto —
+ *          relevante em `noUncheckedIndexedAccess` onde `Object.values`
+ *          devolve um `AreaConfig[]` sem garantia de ordenação estável.
+ *       2. `slotArea` — `SlotGrid` com os slots da área atualmente
+ *          selecionada (ou o bloco informativo da Piscina).
+ *       3. `confirmButton` — `ConfirmButton` que dispara `CONFIRM` no
+ *          reducer.
+ *       4. `confirmMessage` — `ConfirmMessage` acessível (role=status)
+ *          quando há última confirmação. O slot é sempre renderizado,
+ *          mas o conteúdo interno é `null` quando não há confirmação
+ *          ainda — o espaço vertical já é reservado pelo wrapper do
+ *          mockup, eliminando o reflow.
  *
  *   - **Direita** — narrativa de vendas com título, parágrafo, dois
  *     mini-cards de destaque ("2h" / "24/7"), a `TimelineProximas` e um
- *     botão "Ver fluxo completo" que abre `DialogoFluxoMorador`.
+ *     botão "Ver fluxo completo" que abre `DialogoFluxoMorador`. A
+ *     coluna é envolvida em `w-full max-w-md space-y-4` para manter
+ *     largura estável independentemente do estado da Demo.
  *
  * **Sobre a prop `demo`**
  *
@@ -29,8 +36,8 @@
  * cada aba criasse sua própria instância do hook, o estado do Morador
  * seria descartado ao entrar no painel do Síndico e voltar.
  *
- * Requirements: 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.2, 9.1, 9.3, 9.4,
- * 11.1, 11.4, 11.5, 12.9
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9,
+ * 3.10, 9.1, 9.3, 9.4, 11.1, 11.3, 11.4, 11.5, 12.1, 12.2, 12.3, 12.9
  */
 
 import { useState } from 'react';
@@ -56,47 +63,52 @@ export function DemoMorador({ demo }: DemoMoradorProps): JSX.Element {
   const [fluxoAberto, setFluxoAberto] = useState(false);
 
   return (
-    <div className="grid items-start gap-8 md:grid-cols-2">
+    <div className="grid items-start gap-8 md:grid-cols-[320px_1fr] justify-items-center md:justify-items-start">
       {/* Coluna esquerda — Mockup mobile interativo */}
-      <MobileMockup>
-        <div
-          role="radiogroup"
-          aria-label="Escolha uma área comum"
-          className="grid grid-cols-3 gap-2"
-        >
-          {AREA_ORDER.map((id) => {
-            const area = AREAS[id];
-            return (
-              <AreaCard
-                key={id}
-                area={area}
-                selecionada={demo.state.areaSelecionada === id}
-                onClick={() =>
-                  demo.dispatch({ type: 'SELECT_AREA', area: id })
-                }
-              />
-            );
-          })}
-        </div>
-
-        <SlotGrid
-          slotsComStatus={demo.slotsComStatus}
-          slotSelecionado={demo.state.slotSelecionado}
-          onSelect={(slot) => demo.dispatch({ type: 'SELECT_SLOT', slot })}
-        />
-
-        <ConfirmButton
-          podeConfirmar={demo.podeConfirmar}
-          slotSelecionado={demo.state.slotSelecionado}
-          fim={demo.fimDaReservaSelecionada}
-          onConfirm={() => demo.dispatch({ type: 'CONFIRM' })}
-        />
-
-        <ConfirmMessage ultimaConfirmacao={demo.state.ultimaConfirmacao} />
-      </MobileMockup>
+      <MobileMockup
+        areaCards={
+          <div
+            role="radiogroup"
+            aria-label="Escolha uma área comum"
+            className="grid w-full grid-cols-3 gap-2"
+          >
+            {AREA_ORDER.map((id) => {
+              const area = AREAS[id];
+              return (
+                <AreaCard
+                  key={id}
+                  area={area}
+                  selecionada={demo.state.areaSelecionada === id}
+                  onClick={() =>
+                    demo.dispatch({ type: 'SELECT_AREA', area: id })
+                  }
+                />
+              );
+            })}
+          </div>
+        }
+        slotArea={
+          <SlotGrid
+            slotsComStatus={demo.slotsComStatus}
+            slotSelecionado={demo.state.slotSelecionado}
+            onSelect={(slot) => demo.dispatch({ type: 'SELECT_SLOT', slot })}
+          />
+        }
+        confirmButton={
+          <ConfirmButton
+            podeConfirmar={demo.podeConfirmar}
+            slotSelecionado={demo.state.slotSelecionado}
+            fim={demo.fimDaReservaSelecionada}
+            onConfirm={() => demo.dispatch({ type: 'CONFIRM' })}
+          />
+        }
+        confirmMessage={
+          <ConfirmMessage ultimaConfirmacao={demo.state.ultimaConfirmacao} />
+        }
+      />
 
       {/* Coluna direita — Narrativa de vendas */}
-      <div className="space-y-4">
+      <div className="w-full max-w-md space-y-4">
         <h3 className="text-lg font-semibold text-text-primary">
           Reservas em 3 toques
         </h3>
